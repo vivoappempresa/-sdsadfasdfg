@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Call Center Gamefication</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        .main-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        #cenario-container {
+            position: relative;
+            width: 1024px;
+            height: 700px;
+            background-image: url('static/background_sala.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            border: 5px solid #333;
+            overflow: hidden;
+            background-color: #1a1a1a;
+        }
+
+        #ranking-lateral-fixo {
+            width: 250px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #87CEEB;
+            border-radius: 10px;
+            color: #87CEEB;
+        }
+
+        #ranking-lateral-fixo h3 {
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 1px solid #87CEEB;
+            padding-bottom: 10px;
+        }
+
+        .vendedor {
+            position: absolute;
+            transition: left 0.3s ease, top 0.3s ease;
+            text-align: center;
+        }
+
+        .vendedor img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .label-nome {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .label-top { top: -15px; }
+
+        .vendeu-animacao {
+            filter: drop-shadow(0 0 15px gold);
+            z-index: 99 !important;
+        }
+
+        #celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            flex-direction: column;
+            color: white;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+
+        #celebration-overlay.show { display: flex; }
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align:center; font-family: sans-serif;">AVANTTI CONSULTORIA ( SALÃO )</h2>
+
+    <div class="main-wrapper">
+        <div id="ranking-lateral-fixo">
+            <h3>Top Vendedores</h3>
+            <ol id="ranking-list" style="font-weight:bold; padding-left:25px;"></ol>
+        </div>
+        <div id="cenario-container"></div>
+    </div>
+
+    <div style="position:absolute; top:10px; left:10px; z-index:1000; background: rgba(0,0,0,0.7); padding: 8px; border-radius: 5px; color: white; font-family: sans-serif; font-size: 12px;">
+        Volume Ambiente<br>
+        <input type="range" id="volume-control" min="0" max="1" step="0.1" value="0.5" style="width:100px;">
+    </div>
+
+    <audio id="som-venda" src="static/venda_som.mp3" preload="auto"></audio>
+    <audio id="musica-ambiente" src="static/ambiente.mp3" loop preload="auto"></audio>
+
+    <div id="celebration-overlay">
+        <h1 id="vendedor-nome">VENDA REALIZADA!</h1>
+        <img id="lider-gif" src="" alt="Líder">
+    </div>
+
+    
+    <script>
+        let vendedores = {};
+        let stats = { total: 0, top_equipe: "Carregando..." };
+        let vendasLocais = {};
+        const container = document.getElementById('cenario-container');
+        const rankingList = document.getElementById('ranking-list');
+        const CELEBRATION_DURATION = 3000; // milliseconds for celebration animation
+
+        const equipes = {
+            "vendedor_1": {"nome": "FERNANDA", "sexo": "f", "grupo": "GIBSON", "x": 100, "y": 150, "valor_total": 0},
+            "vendedor_2": {"nome": "BIATRIZ", "sexo": "f", "grupo": "GIBSON", "x": 200, "y": 150},
+            "vendedor_3": {"nome": "RAABE", "sexo": "m", "grupo": "GIBSON", "x": 300, "y": 150},
+            "vendedor_4": {"nome": "LUCAS", "sexo": "m", "grupo": "GIBSON", "x": 400, "y": 150},
+            "vendedor_5": {"nome": "LAYSSA", "sexo": "f", "grupo": "GIBSON", "x": 500, "y": 150},
+            "vendedor_6": {"nome": "PAULO", "sexo": "m", "grupo": "GIBSON", "x": 600, "y": 150},
+            "vendedor_7": {"nome": "debora3", "sexo": "f", "grupo": "DEBORA", "x": 100, "y": 250},
+            "vendedor_8": {"nome": "debora2", "sexo": "f", "grupo": "DEBORA", "x": 200, "y": 250},
+            "vendedor_9": {"nome": "debora4", "sexo": "f", "grupo": "DEBORA", "x": 300, "y": 250},
+            "vendedor_10": {"nome": "debora5", "sexo": "f", "grupo": "DEBORA", "x": 400, "y": 250},
+            "vendedor_11": {"nome": "debora6", "sexo": "f", "grupo": "DEBORA", "x": 500, "y": 250},
+            "vendedor_12": {"nome": "DAMIÃO", "sexo": "m", "grupo": "ENOQUE", "x": 600, "y": 250},
+            "vendedor_13": {"nome": "SONJA", "sexo": "f", "grupo": "ENOQUE", "x": 100, "y": 350},
+            "vendedor_14": {"nome": "JOELIA", "sexo": "f", "grupo": "ENOQUE", "x": 200, "y": 350},
+            "vendedor_15": {"nome": "GABRIEL", "sexo": "m", "grupo": "ENOQUE", "x": 300, "y": 350},
+            "vendedor_16": {"nome": "MATHEUS", "sexo": "m", "grupo": "ENOQUE", "x": 400, "y": 350},
+            "vendedor_17": {"nome": "LARISSA", "sexo": "f", "grupo": "ENOQUE", "x": 500, "y": 350},
+            "vendedor_18": {"nome": "VANESSA", "sexo": "f", "grupo": "BRUNA", "x": 600, "y": 350},
+            "vendedor_19": {"nome": "SAMARA", "sexo": "f", "grupo": "BRUNA", "x": 100, "y": 450},
+            "vendedor_20": {"nome": "JANE", "sexo": "f", "grupo": "BRUNA", "x": 200, "y": 450},
+            "vendedor_21": {"nome": "VITORIA", "sexo": "f", "grupo": "BRUNA", "x": 300, "y": 450},
+            "vendedor_22": {"nome": "MARYANA", "sexo": "f", "grupo": "BRUNA", "x": 400, "y": 450},
+            "vendedor_23": {"nome": "ISABELLE", "sexo": "f", "grupo": "BRUNA", "x": 500, "y": 450},
+            "vendedor_24": {"nome": "GELDON", "sexo": "m", "grupo": "ELIZABETE", "x": 600, "y": 450},
+            "vendedor_25": {"nome": "ALEX", "sexo": "m", "grupo": "ELIZABETE", "x": 100, "y": 550},
+            "vendedor_26": {"nome": "MARCELO", "sexo": "m", "grupo": "ELIZABETE", "x": 200, "y": 550},
+            "vendedor_27": {"nome": "RAUL", "sexo": "m", "grupo": "ELIZABETE", "x": 300, "y": 550},
+            "vendedor_28": {"nome": "ANA MARIA", "sexo": "f", "grupo": "ELIZABETE", "x": 400, "y": 550},
+            "vendedor_29": {"nome": "FABIOLA", "sexo": "f", "grupo": "ELIZABETE", "x": 500, "y": 550},
+        };
+
+        // Helper function to get the corresponding 'vendeu' GIF path
+        function getVendeuGifPath(trabalhandoGifPath) {
+            if (!trabalhandoGifPath) return '';
+            return trabalhandoGifPath.replace('trabalhando_', 'vendeu_').replace('frente1.gif', 'frente.gif');
+        }
+
+        async function inicializar() {
+            try {
+                const vendasRes = await fetch('vendas.json').catch(() => ({json: () => ({})}));
+                const layoutRes = await fetch('layout.json').catch(() => ({json: () => ({sprites: []})}));
+                
+                const vendasData = await vendasRes.json();
+                const layoutData = await layoutRes.json();
+
+                // Pega vendas do localStorage também
+                const vendasLocais = JSON.parse(localStorage.getItem('vendasLocais')) || {};
+                const todasVendas = { ...vendasData, ...vendasLocais };
+
+                for (let id in todasVendas) {
+                    if (equipes[id]) equipes[id].valor_total = todasVendas[id];
+                }
+
+                (layoutData.sprites || []).forEach(s => {
+                    let nomeFinal = (s.equipeId.startsWith('lider_') || s.equipeId.startsWith('tile_') || s.equipeId.startsWith('texto_'))
+                               ? s.nome : (equipes[s.equipeId] ? equipes[s.equipeId].nome : s.nome);
+
+                    vendedores[s.equipeId] = {
+                        ...s,
+                        nome: nomeFinal,
+                        status: "trabalhando",
+                        valor_total: equipes[s.equipeId] ? equipes[s.equipeId].valor_total : 0,
+                        trabalhando_img: s.img, // Store original 'trabalhando' GIF
+                        vendeu_img: getVendeuGifPath(s.img) // Derive 'vendeu' GIF path
+                    };
+                });
+                calcularStats();
+                renderizarTudo();
+            } catch (e) { console.error("Erro inicialização:", e); }
+        }
+
+        function getTopVendedoresHTML() {
+            const listaOrdenada = Object.values(vendedores)
+                .filter(v => v.tipo !== 'lider' && v.tipo !== 'tile' && v.tipo !== 'texto')
+                .sort((a, b) => (b.valor_total || 0) - (a.valor_total || 0))
+                .slice(0, 5);
+            if (listaOrdenada.length === 0) return "Aguardando vendas...";
+            return listaOrdenada.map((w, i) => `${i+1}º ${w.nome}: R$ ${(w.valor_total || 0).toFixed(2)}`).join('<br>');
+        }
+
+        function renderizarTudo() {
+            for (let id in vendedores) { atualizarElemento(id); }
+            atualizarRankingLateral();
+        }
+
+        function atualizarElemento(id) {
+            const v = vendedores[id];
+            let div = document.getElementById(id);
+            if (!div) {
+                div = document.createElement('div');
+                div.id = id;
+                div.className = 'vendedor';
+                container.appendChild(div);
+            }
+
+            div.style.left = v.x + 'px';
+            div.style.top = v.y + 'px';
+            div.style.width = (v.width || 80) + 'px';
+            div.style.height = (v.height || 80) + 'px';
+            div.style.zIndex = v.z || 10;
+
+            if (v.tipo === 'texto') {
+                let conteudo = "";
+                if (v.texto === 'valor_total') conteudo = `R$ ${Number(stats.total).toFixed(2)}`;
+                else if (v.texto === 'equipe_top') conteudo = stats.top_equipe || '---';
+                else if (v.texto === 'top_vendedores') conteudo = getTopVendedoresHTML();
+                else conteudo = v.texto;
+                div.style.color = v.color || '#87CEEB';
+                div.style.fontSize = (v.fontSize || 20) + 'px';
+                div.innerHTML = conteudo;
+            } else {
+                let imgNome = v.img; // This 'v.img' will be dynamically updated for animations
+                const url = `static/${imgNome}`;
+                let imgElement = div.querySelector('img');
+
+                if (!imgElement) {
+                    imgElement = document.createElement('img');
+                    imgElement.style.width = '100%';
+                    imgElement.style.height = '100%';
+                    div.appendChild(imgElement);
+
+                    // Recreate label if it doesn't exist
+                    if (v.tipo !== "tile" && v.tipo !== "mario") {
+                        let labelDiv = div.querySelector('.label-nome');
+                        if (!labelDiv) {
+                            labelDiv = document.createElement('div');
+                            labelDiv.className = 'label-nome label-top';
+                            div.appendChild(labelDiv);
+                        }
+                        labelDiv.textContent = v.nome;
+                    }
+                } else {
+                    // If image element already exists, update label content in case nome changes
+                    if (v.tipo !== "tile" && v.tipo !== "mario") {
+                        let labelDiv = div.querySelector('.label-nome');
+                        if (labelDiv) {
+                             labelDiv.textContent = v.nome;
+                        }
+                    }
+                }
+                // Always update the src attribute to ensure GIF animation changes take effect
+                if (imgElement.src !== window.location.origin + '/' + url) { // Avoid re-setting if same
+                    imgElement.src = url;
+                }
+            }
+        }
+
+        function atualizarRankingLateral() {
+            const listaOrdenada = Object.values(vendedores)
+                .filter(v => v.tipo !== 'lider' && v.tipo !== 'tile' && v.tipo !== 'texto' && v.valor_total > 0)
+                .sort((a, b) => b.valor_total - a.valor_total)
+                .slice(0, 5);
+            rankingList.innerHTML = listaOrdenada.length > 0
+                ? listaOrdenada.map(w => `<li>${w.nome}: R$ ${w.valor_total.toFixed(2)}</li>`).join('')
+                : "<li>Nenhuma venda</li>";
+        }
+
+        function calcularStats() {
+            stats.total = Object.values(equipes).reduce((sum, v) => sum + (v.valor_total || 0), 0);
+            const gruposSums = {};
+            for (let v of Object.values(equipes)) {
+                gruposSums[v.grupo] = (gruposSums[v.grupo] || 0) + (v.valor_total || 0);
+            }
+            stats.top_equipe = Object.keys(gruposSums).reduce((a, b) => gruposSums[a] > gruposSums[b] ? a : b, null) || '---';
+        }
+
+        function animateSale(vendedorId, liderTeam) {
+            const v = vendedores[vendedorId];
+            if (!v || !v.vendeu_img) return;
+
+            // 1. Temporarily change vendor GIF to 'vendeu'
+            v.img = v.vendeu_img;
+            atualizarElemento(vendedorId);
+            if (document.getElementById(vendedorId)) {
+                document.getElementById(vendedorId).classList.add('vendeu-animacao');
+            }
+
+            // 2. Trigger celebration overlay
+            const celebrationOverlay = document.getElementById('celebration-overlay');
+            const liderGifElement = document.getElementById('lider-gif');
+            const vendedorNomeElement = document.getElementById('vendedor-nome');
+
+            if (celebrationOverlay && liderGifElement && vendedorNomeElement) {
+                // Ensure liderTeam is properly formatted for filename, e.g., lowercase
+                let liderGifPath = `static/lider_${liderTeam.toLowerCase()}.gif`;
+                liderGifElement.src = liderGifPath;
+                vendedorNomeElement.textContent = `${v.nome} REALIZOU UMA VENDA!`;
+                celebrationOverlay.classList.add('show');
+                if (typeof confetti === 'function') { // Check if confetti is loaded
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+
+                // Hide celebration after duration
+                setTimeout(() => {
+                    celebrationOverlay.classList.remove('show');
+                    liderGifElement.src = ''; // Clear source
+                }, CELEBRATION_DURATION);
+            }
+
+            // 3. Revert vendor GIF after a short delay
+            setTimeout(() => {
+                v.img = v.trabalhando_img;
+                atualizarElemento(vendedorId);
+                if (document.getElementById(vendedorId)) {
+                    document.getElementById(vendedorId).classList.remove('vendeu-animacao');
+                }
+            }, CELEBRATION_DURATION);
+        }
+
+        setInterval(async () => {
+            try {
+                const vendasRes = await fetch('vendas.json').catch(() => ({json: () => ({})}));
+                const vendasData = await vendasRes.json();
+                const vendasLocais = JSON.parse(localStorage.getItem('vendasLocais')) || {};
+                const todasVendas = { ...vendasData, ...vendasLocais };
+
+                for (let id in todasVendas) {
+                    if (equipes[id]) {
+                        const oldValor = equipes[id].valor_total || 0;
+                        const newValor = todasVendas[id];
+
+                        if (newValor > oldValor) { // Sale detected
+                            console.log(`Venda detectada para ${equipes[id].nome}! Valor antigo: ${oldValor}, Novo valor: ${newValor}`);
+                            animateSale(id, equipes[id].grupo); // Trigger animation and celebration
+                        }
+
+                        equipes[id].valor_total = newValor;
+                        if (vendedores[id]) vendedores[id].valor_total = newValor;
+                    }
+                }
+                calcularStats();
+                renderizarTudo();
+            } catch (e) { console.error("Erro polling:", e); }
+        }, 3000);
+
+        const volControl = document.getElementById('volume-control');
+        const musica = document.getElementById('musica-ambiente');
+        volControl.addEventListener('input', (e) => { musica.volume = e.target.value; });
+        window.addEventListener('click', () => { if(musica.paused) musica.play(); }, {once: true});
+
+        inicializar();
+    </script>
+
+</body>
+</html>

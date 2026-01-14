@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Admin - Lançar Vendas</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
+        .card-vendedor {
+            background: white;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            width: 150px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:active { background: #218838; }
+        .grupo-titulo { border-bottom: 2px solid #333; width: 100%; margin-top: 20px; font-size: 18px; font-weight: bold; }
+        .grupo-container { display: flex; flex-wrap: wrap; justify-content: center; }
+        input[type="number"] { width: 80%; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Lançamento de Vendas (Simulação Real-Time)</h1>
+    <p>As vendas lançadas aqui aparecerão na página do Salão no seu navegador.</p>
+    <button onclick="resetTodasEquipes()" style="background:#dc3545; color:white; margin-bottom:20px; width: auto;">ZERAR TODAS EQUIPES (Local)</button>
+
+    <div id="grupos-container"></div>
+
+    <script>
+        const equipes = {
+            "vendedor_1": {"nome": "FERNANDA", "grupo": "GIBSON"},
+            "vendedor_2": {"nome": "BIATRIZ", "grupo": "GIBSON"},
+            "vendedor_3": {"nome": "RAABE", "grupo": "GIBSON"},
+            "vendedor_4": {"nome": "LUCAS", "grupo": "GIBSON"},
+            "vendedor_5": {"nome": "LAYSSA", "grupo": "GIBSON"},
+            "vendedor_6": {"nome": "PAULO", "grupo": "GIBSON"},
+            "vendedor_7": {"nome": "debora3", "grupo": "DEBORA"},
+            "vendedor_8": {"nome": "debora2", "grupo": "DEBORA"},
+            "vendedor_9": {"nome": "debora4", "grupo": "DEBORA"},
+            "vendedor_10": {"nome": "debora5", "grupo": "DEBORA"},
+            "vendedor_11": {"nome": "debora6", "grupo": "DEBORA"},
+            "vendedor_12": {"nome": "DAMIÃO", "grupo": "ENOQUE"},
+            "vendedor_13": {"nome": "SONJA", "grupo": "ENOQUE"},
+            "vendedor_14": {"nome": "JOELIA", "grupo": "ENOQUE"},
+            "vendedor_15": {"nome": "GABRIEL", "grupo": "ENOQUE"},
+            "vendedor_16": {"nome": "MATHEUS", "grupo": "ENOQUE"},
+            "vendedor_17": {"nome": "LARISSA", "grupo": "ENOQUE"},
+            "vendedor_18": {"nome": "VANESSA", "grupo": "BRUNA"},
+            "vendedor_19": {"nome": "SAMARA", "grupo": "BRUNA"},
+            "vendedor_20": {"nome": "JANE", "grupo": "BRUNA"},
+            "vendedor_21": {"nome": "VITORIA", "grupo": "BRUNA"},
+            "vendedor_22": {"nome": "MARYANA", "grupo": "BRUNA"},
+            "vendedor_23": {"nome": "ISABELLE", "grupo": "BRUNA"},
+            "vendedor_24": {"nome": "GELDON", "grupo": "ELIZABETE"},
+            "vendedor_25": {"nome": "ALEX", "grupo": "ELIZABETE"},
+            "vendedor_26": {"nome": "MARCELO", "grupo": "ELIZABETE"},
+            "vendedor_27": {"nome": "RAUL", "grupo": "ELIZABETE"},
+            "vendedor_28": {"nome": "ANA MARIA", "grupo": "ELIZABETE"},
+            "vendedor_29": {"nome": "FABIOLA", "grupo": "ELIZABETE"},
+        };
+
+        let vendasLocais = JSON.parse(localStorage.getItem('vendasLocais')) || {};
+
+        function renderizarGrupos() {
+            const container = document.getElementById('grupos-container');
+            const grupos = {};
+            for (let id in equipes) {
+                if (!grupos[equipes[id].grupo]) grupos[equipes[id].grupo] = [];
+                grupos[equipes[id].grupo].push(id);
+            }
+
+            container.innerHTML = '';
+            for (let grupo in grupos) {
+                const titulo = document.createElement('div');
+                titulo.className = 'grupo-titulo';
+                titulo.textContent = grupo;
+                container.appendChild(titulo);
+                const grupoDiv = document.createElement('div');
+                grupoDiv.className = 'grupo-container';
+
+                grupos[grupo].forEach(id => {
+                    const card = document.createElement('div');
+                    card.className = 'card-vendedor';
+                    card.innerHTML = `
+                        <strong>${equipes[id].nome}</strong><br>
+                        Total: R$ <span id="total-${id}">${(vendasLocais[id] || 0).toFixed(2)}</span><br>
+                        <input type="number" id="valor-${id}" step="0.01" placeholder="R$ 0.00"><br>
+                        <button onclick="vender('${id}')">Lançar</button>
+                    `;
+                    grupoDiv.appendChild(card);
+                });
+                container.appendChild(grupoDiv);
+            }
+        }
+
+        function vender(id) {
+            const input = document.getElementById('valor-' + id);
+            const valor = parseFloat(input.value) || 0;
+            if (valor <= 0) return;
+            vendasLocais[id] = (vendasLocais[id] || 0) + valor;
+            localStorage.setItem('vendasLocais', JSON.stringify(vendasLocais));
+            document.getElementById('total-' + id).textContent = vendasLocais[id].toFixed(2);
+            input.value = '';
+        }
+
+        function resetTodasEquipes() {
+            if (confirm('Zerar todas as vendas locais?')) {
+                vendasLocais = {};
+                localStorage.setItem('vendasLocais', JSON.stringify(vendasLocais));
+                renderizarGrupos();
+            }
+        }
+
+        renderizarGrupos();
+    </script>
+</body>
+</html>

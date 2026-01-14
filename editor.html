@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor de Layout</title>
+    <style>
+        body { font-family: sans-serif; display: flex; }
+        #sidebar { width: 200px; padding: 10px; background: #f0f0f0; height: 100vh; overflow-y: auto; }
+        #canvas { position: relative; width: 1024px; height: 700px; background-image: url('static/background_sala.png'); background-size: contain; background-repeat: no-repeat; margin: 0 auto; border: 5px solid #333; }
+        .sprite { width: 80px; height: 80px; margin: 5px; cursor: pointer; border: 1px solid #ccc; }
+        .sprite img { width: 100%; height: 100%; }
+        .placed { position: absolute; cursor: move; resize: both; overflow: hidden; border: 1px dashed red; }
+        .placed.selected { border-color: blue; }
+        #controls { position: absolute; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; }
+        select, button { margin: 5px; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h3>Sprites Disponíveis</h3>
+        
+        <div class="sprite" data-img="lider_enoque.gif" data-sexo="lider" data-tipo="lider" data-nome="ENOQUE">
+            <img src="static/lider_enoque.gif" alt="Líder Enoque">
+        </div>
+        <div class="sprite" data-img="lider_bruna.gif" data-sexo="lider" data-tipo="lider" data-nome="BRUNA">
+            <img src="static/lider_bruna.gif" alt="Líder Bruna">
+        </div>
+        <div class="sprite" data-img="lider_elizabete.gif" data-sexo="lider" data-tipo="lider" data-nome="ELIZABETE">
+            <img src="static/lider_elizabete.gif" alt="Líder Elizabete">
+        </div>
+        <h3>Tiles de Fundo</h3>
+        <div class="sprite" data-img="tile1.png" data-sexo="tile" data-tipo="tile">
+            <img src="static/tile1.png" alt="Tile 1">
+        </div>
+        <div class="sprite" data-img="tile2.png" data-sexo="tile" data-tipo="tile">
+            <img src="static/tile2.png" alt="Tile 2">
+        </div>
+        <h3>Animações Especiais</h3>
+        <div class="sprite" data-tipo="mario">
+            <img src="static/mario1.gif" alt="Mario" style="width:100%; height:100%;">
+        </div>
+        <h3>Textos</h3>
+        <div class="sprite" data-tipo="texto" data-texto="valor_total" style="text-align:center; padding:20px;">
+            VALOR TOTAL
+        </div>
+        <div class="sprite" data-tipo="texto" data-texto="equipe_top" style="text-align:center; padding:20px;">
+            EQUIPE TOP
+        </div>
+        <div class="sprite" data-tipo="texto" data-texto="top_vendedores" style="text-align:center; padding:20px;">
+            TOP VENDEDORES
+        </div>
+        <h4>Texto Personalizado</h4>
+        <input type="text" id="custom-text-input" placeholder="Digite o texto personalizado" style="width:180px;"><br>
+        <button id="add-custom-text">Adicionar Texto Personalizado</button>
+        <h3>Equipes</h3>
+        <select id="equipe-select">
+            <option value="vendedor_1">GIBSON - FERNANDA</option>
+            <option value="vendedor_2">GIBSON - BIATRIZ</option>
+            <option value="vendedor_3">GIBSON - RAABE</option>
+            <option value="vendedor_4">GIBSON - LUCAS</option>
+            <option value="vendedor_5">GIBSON - LAYSSA</option>
+            <option value="vendedor_6">GIBSON - PAULO</option>
+            <option value="vendedor_7">DEBORA - debora3</option>
+            <option value="vendedor_8">DEBORA - debora2</option>
+            <option value="vendedor_9">DEBORA - debora4</option>
+            <option value="vendedor_10">DEBORA - debora5</option>
+            <option value="vendedor_11">DEBORA - debora6</option>
+            <option value="vendedor_12">ENOQUE - DAMIÃO</option>
+            <option value="vendedor_13">ENOQUE - SONJA</option>
+            <option value="vendedor_14">ENOQUE - JOELIA</option>
+            <option value="vendedor_15">ENOQUE - GABRIEL</option>
+            <option value="vendedor_16">ENOQUE - MATHEUS</option>
+            <option value="vendedor_17">ENOQUE - LARISSA</option>
+            <option value="vendedor_18">BRUNA - VANESSA</option>
+            <option value="vendedor_19">BRUNA - SAMARA</option>
+            <option value="vendedor_20">BRUNA - JANE</option>
+            <option value="vendedor_21">BRUNA - VITORIA</option>
+            <option value="vendedor_22">BRUNA - MARYANA</option>
+            <option value="vendedor_23">BRUNA - ISABELLE</option>
+            <option value="vendedor_24">ELIZABETE - GELDON</option>
+            <option value="vendedor_25">ELIZABETE - ALEX</option>
+            <option value="vendedor_26">ELIZABETE - MARCELO</option>
+            <option value="vendedor_27">ELIZABETE - RAUL</option>
+            <option value="vendedor_28">ELIZABETE - ANA MARIA</option>
+            <option value="vendedor_29">ELIZABETE - FABIOLA</option>
+        </select>
+        <button id="add-sprite">Adicionar Sprite</button>
+        <button id="save-layout">Salvar Layout (Local)</button>
+        <button id="export-layout">Exportar Layout JSON</button>
+        <button id="load-layout">Carregar Layout</button>
+        <button id="delete-selected">Deletar Selecionado</button>
+    </div>
+    <div id="canvas"></div>
+    <div id="controls">
+        <label>Tamanho (%): <input type="text" id="size-input" value="100"></label><br>
+        <label>Z-Index: <select id="z-select"><option value="1">Atrás</option><option value="10" selected>Frente</option></select></label><br>
+        <div id="text-controls" style="display:none;">
+            <label>Tamanho Fonte (px): <input type="number" id="font-size-input" value="24" min="10" max="100"></label><br>
+            <label>Cor: <input type="color" id="color-input" value="#87CEEB"></label><br>
+        </div>
+        <button id="apply-changes">Aplicar Mudanças</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const sprites = document.querySelectorAll('.sprite');
+        const equipeSelect = document.getElementById('equipe-select');
+        const sizeInput = document.getElementById('size-input');
+        const zSelect = document.getElementById('z-select');
+        let selectedSprite = null;
+        let placedSprites = [];
+        let selectedPlaced = null;
+        let tileCounter = 0;
+
+        // Carregar layout
+        function loadLayout() {
+            const saved = localStorage.getItem('layoutLocal');
+            if (saved) {
+                placedSprites = JSON.parse(saved);
+            } else {
+                fetch('layout.json')
+                    .then(r => r.json())
+                    .then(data => {
+                        placedSprites = data.sprites || [];
+                        renderSprites();
+                    })
+                    .catch(() => renderSprites());
+            }
+            // Atualizar tileCounter
+            const tiles = placedSprites.filter(s => s.tipo === 'tile');
+            if (tiles.length > 0) {
+                tileCounter = Math.max(...tiles.map(s => {
+                    const parts = s.equipeId.split('_');
+                    return parseInt(parts[parts.length - 1]) || 0;
+                }));
+            }
+            renderSprites();
+        }
+
+        // Renderizar sprites colocados
+        function renderSprites() {
+            canvas.innerHTML = '';
+            placedSprites.forEach((s, i) => {
+                const div = document.createElement('div');
+                div.className = 'placed';
+                div.style.left = s.x + 'px';
+                div.style.top = s.y + 'px';
+                div.style.width = s.width + 'px';
+                div.style.height = s.height + 'px';
+                div.style.zIndex = s.z || 10;
+                if (s.tipo === 'texto') {
+                    const fontSize = s.fontSize || 24;
+                    const color = s.color || '#87CEEB';
+                    div.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:${fontSize}px; color:${color}; font-family:'Courier New', monospace; font-weight:bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${s.texto}</div>`;
+                } else {
+                    div.innerHTML = `<img src="static/${s.img}" style="width:100%; height:100%;">`;
+                }
+                div.dataset.index = i;
+                div.addEventListener('click', () => selectPlaced(div, i));
+                makeDraggable(div);
+                canvas.appendChild(div);
+            });
+        }
+
+        // Selecionar sprite da sidebar
+        sprites.forEach(s => {
+            s.addEventListener('click', () => {
+                selectedSprite = s;
+                sprites.forEach(ss => ss.style.borderColor = '#ccc');
+                s.style.borderColor = 'blue';
+            });
+        });
+
+        // Adicionar sprite
+        document.getElementById('add-sprite').addEventListener('click', () => {
+            if (!selectedSprite) return;
+            let equipeId = equipeSelect.value;
+            const img = selectedSprite.dataset.img || '';
+            const sexo = selectedSprite.dataset.sexo || 'texto';
+            const tipo = selectedSprite.dataset.tipo;
+            let nome = "";
+            if (tipo === "lider") {
+                nome = selectedSprite.dataset.nome;
+                equipeId = "lider_" + nome.toLowerCase();
+            } else if (tipo === "tile") {
+                tileCounter++;
+                equipeId = "tile_" + img.replace('.png', '') + "_" + tileCounter;
+                nome = img.replace('.png', '');
+            } else if (tipo === "texto") {
+                equipeId = "texto_" + selectedSprite.dataset.texto;
+                nome = selectedSprite.dataset.texto;
+            } else if (tipo === "mario") {
+                equipeId = "mario";
+                nome = "Mario";
+            }
+            placedSprites.push({
+                img, sexo, tipo, equipeId, nome, texto: selectedSprite.dataset.texto || '',
+                x: 100, y: 100, width: 200, height: 50, z: 10, fontSize: 24, color: '#87CEEB'
+            });
+            renderSprites();
+        });
+
+        // Adicionar texto personalizado
+        document.getElementById('add-custom-text').addEventListener('click', () => {
+            const customText = document.getElementById('custom-text-input').value.trim();
+            if (!customText) return;
+            let customCounter = 1;
+            while (placedSprites.some(s => s.equipeId === `texto_custom_${customCounter}`)) {
+                customCounter++;
+            }
+            placedSprites.push({
+                img: '', sexo: 'texto', tipo: 'texto', equipeId: `texto_custom_${customCounter}`, nome: customText, texto: customText,
+                x: 100, y: 100, width: 200, height: 50, z: 10, fontSize: 24, color: '#87CEEB'
+            });
+            document.getElementById('custom-text-input').value = '';
+            renderSprites();
+        });
+
+        // Salvar layout localmente
+        document.getElementById('save-layout').addEventListener('click', () => {
+            localStorage.setItem('layoutLocal', JSON.stringify(placedSprites));
+            alert('Layout salvo localmente!');
+        });
+
+        // Carregar layout
+        document.getElementById('load-layout').addEventListener('click', loadLayout);
+
+        // Deletar selecionado
+        document.getElementById('delete-selected').addEventListener('click', () => {
+            if (selectedPlaced !== null) {
+                placedSprites.splice(selectedPlaced, 1);
+                renderSprites();
+                selectedPlaced = null;
+            }
+        });
+
+        // Selecionar colocado
+        function selectPlaced(div, index) {
+            document.querySelectorAll('.placed').forEach(p => p.classList.remove('selected'));
+            div.classList.add('selected');
+            selectedPlaced = index;
+            sizeInput.value = Math.round((placedSprites[index].width / 80) * 100);
+            zSelect.value = placedSprites[index].z || 10;
+            const textControls = document.getElementById('text-controls');
+            const fontSizeInput = document.getElementById('font-size-input');
+            const colorInput = document.getElementById('color-input');
+            if (placedSprites[index].tipo === 'texto') {
+                textControls.style.display = 'block';
+                fontSizeInput.value = placedSprites[index].fontSize || 24;
+                colorInput.value = placedSprites[index].color || '#87CEEB';
+            } else {
+                textControls.style.display = 'none';
+            }
+        }
+
+        // Aplicar mudanças
+        document.getElementById('apply-changes').addEventListener('click', () => {
+            if (selectedPlaced !== null) {
+                const percent = parseFloat(sizeInput.value) / 100;
+                placedSprites[selectedPlaced].width = 80 * percent;
+                placedSprites[selectedPlaced].height = 80 * percent;
+                placedSprites[selectedPlaced].z = parseInt(zSelect.value);
+                if (placedSprites[selectedPlaced].tipo === 'texto') {
+                    const fontSizeInput = document.getElementById('font-size-input');
+                    const colorInput = document.getElementById('color-input');
+                    placedSprites[selectedPlaced].fontSize = parseInt(fontSizeInput.value);
+                    placedSprites[selectedPlaced].color = colorInput.value;
+                }
+                renderSprites();
+            }
+        });
+
+        // Drag and drop
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+                const index = element.dataset.index;
+                placedSprites[index].x = element.offsetLeft;
+                placedSprites[index].y = element.offsetTop;
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        
+        // Export Layout JSON
+        document.getElementById('export-layout').addEventListener('click', () => {
+            const jsonOutput = JSON.stringify(placedSprites, null, 2);
+            console.log(jsonOutput);
+            alert('Layout JSON exported to console! Open your browser's developer tools (F12) to view.');
+        });
+
+        loadLayout();
+    </script>
+</body>
+</html>
